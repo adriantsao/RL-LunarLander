@@ -17,6 +17,7 @@ s = 400  # set game window size, 400x400 pixels
 maxH = 40  # max height of terrain
 landP = 25  # landing platform (target) size
 plat = 20  # where the platform starts
+# Arrays for data ooutput
 rewardArr = []
 xArr = []
 yArr = []
@@ -33,11 +34,11 @@ mx.append(s)
 my.append(rd.randint(s - maxH, s))
 mx[plat] = mx[20 - 1] + landP
 my[plat] = my[20 - 1]
-
+# initialize the previous distance variable for reward system, initialized to the center of platform to origin
 previous_distance = np.sqrt(np.square((mx[plat-1] + mx[plat]) / 2) + np.square(my[plat]))
 
+#Main Lunar Lander game
 class LunarLanderGame():
-    #Main Lunar Lander game class.#
 
     def __init__(self):
         self.s = s
@@ -51,102 +52,101 @@ class LunarLanderGame():
         self.ss = ''
         self.agent = LunarLanderQLearningAgent()
         
-
+    # function too call for agent trainiing
     def train(self, episodes=1000, renderstat=False):
+        # renderstat determines if the game display needs to be started
         for episode in range(episodes):
             print(f"Starting episode {episode + 1} of {episodes}")
             self.run(renderstat = renderstat)
             # Reset the environment for the next episode
             self.reset_environment()
-
+            
+    # Run the game loop
     def run(self, renderstat = True):
-        #Run the game loop.#
-            while not self.stat:
-                if renderstat:
-                    for event in pg.event.get():
-                        if event.type == pg.QUIT:
-                            self.stat = True
-                reward = 0
-                done = False
+        while not self.stat:
+            if renderstat:
+                for event in pg.event.get():
+                    if event.type == pg.QUIT:
+                        self.stat = True
+            reward = 0
+            done = False
 
-                # Agent decides on an action
-                action = self.agent.act([self.x, self.y, self.u, self.v], reward, done)
-                if action == 0:  # UP
-                    # Limit the vertical trust so it cannot be <0 (going up)
-                    if self.v > 0:
-                        self.v = max(0, self.v - self.a)
-                elif action == 1:  # LEFT
-                    self.u = self.u - self.a
-                elif action == 2:  # RIGHT
-                    self.u = self.u + self.a
-                elif action == 3:  # NOTHING
-                    pass
-            
-                # if the spaceship run out of the side
-                if self.x<0:
-                    self.x = 400 + self.x
-                if self.x>400:
-                    self.x = self.x - 400
-                # Update position and velocity of lunar lander
-                if self.ss == '':
-                    self.v += self.g
-                    self.x = (10 * self.x + self.u) / 10
-                    self.y = (10 * self.y + self.v) / 10
-
-                # Check for landing or crash
-                if mx[plat - 1] <= self.x <= mx[plat] and self.y + 10 == my[plat]: # any where on the buttom tuches the platform successfully
-                    # Checking for soft landing (i.e., within a vertical speed threshold)
-                    if abs(self.v) <= 5: 
-                        self.ss = 'landed'
-                        self.cs = (255, 255, 0) # Color for lander
-                    else:
-                        self.ss = 'crash'
-                        # print("landed too fast")
-                        self.cs = (255, 0, 0) # Color to indicate a crash (can be adjusted)
-                else:
-                    for i in range(40):
-                        if mx[i] <= self.x <= mx[i + 1] and (my[i] <= self.y + 10 or my[i + 1] <= self.y + 10):
-                            self.ss = 'crash'
-                            self.cs = (255, 0, 0) # Color to indicate a crash (can be adjusted)
-                        
-                # Determine reward and color of lander based on status
-                reward = compute_reward(self.x, self.y, self.u, self.v, self.ss)
+            # Agent decides on an action
+            action = self.agent.act([self.x, self.y, self.u, self.v], reward, done)
+            if action == 0:  # UP
+                # Limit the vertical trust so it cannot be <0 (going up)
+                if self.v > 0:
+                    self.v = max(0, self.v - self.a)
+            elif action == 1:  # LEFT
+                self.u = self.u - self.a
+            elif action == 2:  # RIGHT
+                self.u = self.u + self.a
                 
-                # If landed or crashed, reset the agent's state for the next episode
-                if self.ss == 'landed' or self.ss == 'crash':
-                    print("Reward:", reward)
-                    print(self.ss)
-                    print("x:", self.x," y:", self.y," u:", self.u, " v:", self.v)
-                    rewardArr.append(reward)
-                    xArr.append(self.x)
-                    yArr.append(self.y)
-                    uArr.append(self.u)
-                    vArr.append(self.v)
-                    statArr.append(self.ss)
-                    done = True
-                    self.reset_environment()
-                    break
-                if renderstat:
-                    # Render game
-                    screen.fill((0, 0, 0))  # Black background
-                    # Drawing the terrain
-                    pg.draw.lines(screen, (255, 255, 255), False, [(mx[i], my[i]) for i in range(41)], 2)  # White terrain line
-                    # Drawing the landing platform
-                    pg.draw.line(screen, (0, 0, 255), (mx[plat - 1], my[plat - 1]), (mx[plat], my[plat]), 4)  # Blue landing platform
-                    pg.draw.rect(screen, self.cs, (self.x, self.y, 10, 10))
-                    pg.display.flip()
-                    clock.tick(100)
-            pg.quit()
+            # if the spaceship run out of the side
+            if self.x<0:
+                self.x = 400 + self.x
+            if self.x>400:
+                self.x = self.x - 400
+            # Update position and velocity of lunar lander
+            if self.ss == '':
+                self.v += self.g
+                self.x = (10 * self.x + self.u) / 10
+                self.y = (10 * self.y + self.v) / 10
+
+            # Check for landing or crash
+            if mx[plat - 1] <= self.x <= mx[plat] and self.y + 10 == my[plat]: # any where on the buttom tuches the platform successfully
+                # Checking for soft landing (i.e., within a vertical speed threshold)
+                if abs(self.v) <= 5: 
+                    self.ss = 'landed'
+                    self.cs = (255, 255, 0) # Color for lander
+                else:
+                    self.ss = 'crash'
+                    # print("landed too fast")
+                    self.cs = (255, 0, 0) # Color to indicate a crash (can be adjusted)
+            else:
+                for i in range(40):
+                    if mx[i] <= self.x <= mx[i + 1] and (my[i] <= self.y + 10 or my[i + 1] <= self.y + 10):
+                        self.ss = 'crash'
+                        self.cs = (255, 0, 0) # Color to indicate a crash (can be adjusted)
+                        
+            # Determine reward and color of lander based on status
+            reward = compute_reward(self.x, self.y, self.u, self.v, self.ss)
+                
+            # If landed or crashed, reset the agent's state for the next episode
+            if self.ss == 'landed' or self.ss == 'crash':
+                print("Reward:", reward)
+                print(self.ss)
+                print("x:", self.x," y:", self.y," u:", self.u, " v:", self.v)
+                rewardArr.append(reward)
+                xArr.append(self.x)
+                yArr.append(self.y)
+                uArr.append(self.u)
+                vArr.append(self.v)
+                statArr.append(self.ss)
+                done = True
+                self.reset_environment()
+                break
+            if renderstat:
+                # Render game
+                screen.fill((0, 0, 0))  # Black background
+                # Drawing the terrain
+                pg.draw.lines(screen, (255, 255, 255), False, [(mx[i], my[i]) for i in range(41)], 2)  # White terrain line
+                # Drawing the landing platform
+                pg.draw.line(screen, (0, 0, 255), (mx[plat - 1], my[plat - 1]), (mx[plat], my[plat]), 4)  # Blue landing platform
+                pg.draw.rect(screen, self.cs, (self.x, self.y, 10, 10))
+                pg.display.flip()
+                clock.tick(100)
+        pg.quit()
             
+    #Reset the environment to its initial state
     def reset_environment(self):
-        #Reset the environment to its initial state.
         self.x = rd.randint(0, self.s-10)
         self.y = 10
         self.u = self.v = 0
         self.cs = (255, 255, 255)  # Lander color is reset to white
         self.ss = ''  # Reset status
 
-
+# Reward calculatiion function
 def compute_reward(x, y, u, v, ss):
     global previous_distance
     reward = 0
@@ -183,8 +183,8 @@ def compute_reward(x, y, u, v, ss):
 
     return reward
 
+# Q-learning agent for the lunar lander game
 class LunarLanderQLearningAgent:
-    # Q-learning agent for the lunar lander game.
     n_actions = 4
 
     def __init__(self, alpha=0.5, gamma=0.9, p_explore=0.1, decay_rate=0.995):
@@ -202,8 +202,8 @@ class LunarLanderQLearningAgent:
         step = (max_value - min_value) / self.n_grid
         return min(int((value - min_value) / step), self.n_grid - 1)
 
+    #Decide action based on current observation and learn from reward
     def act(self, observation, reward, done):
-        #Decide action based on current observation and learn from reward.#
         x, y, u, v = observation
         x_d = self.discretize(x, 0, s)
         y_d = self.discretize(y, 0, s)
@@ -211,8 +211,8 @@ class LunarLanderQLearningAgent:
         v_d = self.discretize(v, -20, 20)
 
         new_state = (x_d, y_d, u_d, v_d)
+        
         # Inside act function, after calculating new_state
-
         # Check and clip indices
         x_d, y_d, u_d, v_d = new_state
         x_d = np.clip(x_d, 0, self.n_grid - 1)
